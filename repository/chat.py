@@ -20,6 +20,7 @@ class ChatRepository(BaseRepository):
         if chat not in user.chat:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Chat not found")
         return chat
+    
     async def create(self, user, data:dict):
         # try to get chat with same name if so return error
         chat = self.session.query(ChatModel).filter_by(name=data['name']).first()
@@ -28,10 +29,11 @@ class ChatRepository(BaseRepository):
         members = data["members_array"]
         members.append(user.id)
         members = list(set(members))
+        print('Members of chat to create: ', members)
         for index,member in enumerate(members):
             members[index] = self.session.query(UserModel).filter_by(id=member).first()
-            if not member:
-                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+            if not members[index]:
+                return 'User not found'
         data['members_array'] = members
         chat = ChatModel(**data)
         self.session.add(chat)

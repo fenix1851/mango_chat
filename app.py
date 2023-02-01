@@ -6,10 +6,12 @@ from routers.chat import router as chat_router
 from routers.message import router as message_router
 import socketio
 
-app = FastAPI()
-
 from sockets.socketio import sio
+
+app = FastAPI()
 socket_app = socketio.ASGIApp(sio, app)
+
+
 
 
 app.add_middleware(
@@ -26,4 +28,4 @@ app.include_router(user_router)
 app.include_router(chat_router)
 app.include_router(message_router)
  
-app.mount('/', socket_app)
+app.mount('/ws', socket_app)

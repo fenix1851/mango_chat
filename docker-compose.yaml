@@ -6,6 +6,10 @@ services:
       - "5432:5432"
     env_file:
       - .env
+    volumes:
+      - ./docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
+    environment:
+      POSTGRES_INITDB_SQL: /docker-entrypoint-initdb.d/initdb.sql
   web:
     build: .
     volumes:

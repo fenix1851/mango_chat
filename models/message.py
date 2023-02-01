@@ -4,6 +4,7 @@ from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 
 from models.user import UserModel
+from models.message_type import MessageTypeModel
 
 message_likes = Table(
     'message_likes',
@@ -19,5 +20,7 @@ class MessageModel(Base):
         "UserModel", backref="message_likes", secondary="message_likes")
     user_id = Column(Integer, ForeignKey('user_table.id'))
     chat_id = Column(Integer, ForeignKey('chat.id'))
-    type = Column(String(255), nullable=False)
+    message_type = Column(Integer, ForeignKey('message_type.id'))
+    content = Column(String(255), nullable=False)   
     created_at = Column(String(255), nullable=False, server_default=func.now())
+    

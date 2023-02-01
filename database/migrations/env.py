@@ -13,7 +13,6 @@ from database.base import Base
 from models.user import UserModel
 from models.chat import ChatModel
 from models.pinned_chat import PinnedChatModel
-from models.message_type import MessageTypeModel
 from models.message import MessageModel
 
 

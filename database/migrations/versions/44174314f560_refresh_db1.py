@@ -1,8 +1,8 @@
 """refresh db1
 
-Revision ID: cfaf51d52ef4
+Revision ID: 44174314f560
 Revises: 
-Create Date: 2023-02-01 12:30:00.839775
+Create Date: 2023-02-01 19:54:27.920006
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = 'cfaf51d52ef4'
+revision = '44174314f560'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -25,12 +25,7 @@ def upgrade():
     sa.Column('created_at', sa.String(length=255), server_default=sa.text('now()'), nullable=False),
     sa.PrimaryKeyConstraint('id')
     )
-    op.create_table('message_type',
-    sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
-    sa.Column('name', sa.String(length=255), nullable=False),
-    sa.Column('mime', sa.String(length=255), nullable=False),
-    sa.PrimaryKeyConstraint('id')
-    )
+
     op.create_table('user_table',
     sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
     sa.Column('name', sa.String(length=255), nullable=True),
@@ -54,9 +49,10 @@ def upgrade():
     sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
     sa.Column('user_id', sa.Integer(), nullable=True),
     sa.Column('chat_id', sa.Integer(), nullable=True),
-    sa.Column('type', sa.String(length=255), nullable=False),
+    sa.Column('message_type', sa.Integer(), nullable=True),
     sa.Column('created_at', sa.String(length=255), server_default=sa.text('now()'), nullable=False),
     sa.ForeignKeyConstraint(['chat_id'], ['chat.id'], ),
+    sa.ForeignKeyConstraint(['message_type'], ['message_type.id'], ),
     sa.ForeignKeyConstraint(['user_id'], ['user_table.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
