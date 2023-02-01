@@ -109,7 +109,26 @@ class UserRepository(BaseRepository):
         # exclude_unset = True
         if user_in_db.id == user.id:
             for key, value in data.items():
-                setattr(user_in_db, key, value)
+                if key == 'photo':
+                    if not self.is_valid_base64(value):
+                        raise HTTPException(status_code=403, detail="Photo is not valid")
+                    else:
+                        decoded_photo = base64.b64decode(value)
+                        photo_uuid = uuid.uuid4()
+                        os.mkdir(f'static/{photo_uuid}')
+                        with open(f'static/{photo_uuid}/original.jpg', 'wb') as f:
+                            f.write(decoded_photo)
+                        # get path to photo by os.path
+                        path = f'static/{photo_uuid}/original.jpg'
+                        output_path = os.path.join(os.getcwd(), f'static/{photo_uuid}/')
+                        # resize and save photo in 50x50, 100x100, 400x400
+                        await self.resize_and_save(path, output_path, (50, 50))
+                        await self.resize_and_save(path, output_path, (100, 100))
+                        await self.resize_and_save(path, output_path, (400, 400))
+
+                        setattr(user_in_db, key, str(photo_uuid))
+                else:
+                    setattr(user_in_db, key, value)
             self.session.commit()
             return user_in_db
         else:

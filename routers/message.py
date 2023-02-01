@@ -11,5 +11,6 @@ router = APIRouter(prefix="/message", tags=["message"])
 
 @router.get("/{chat_id}")
 async def get_messages(chat_id: int,message_service=Depends(get_message_service), user: UserModel = Depends(get_current_user)):
+    '''Get all messages of chat with id = chat_id. If user is not a member of chat, return 404'''
     return await message_service.get_messages(chat_id, user)
     
