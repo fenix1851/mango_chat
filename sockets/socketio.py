@@ -137,8 +137,8 @@ async def create_chat(sid, data):
         print('Wrong data format')
         return False
 
-@sio.on('toogle_chat_pin')
-async def toogle_chat_pin(sid, data):
+@sio.on('toggle_chat_pin')
+async def toggle_chat_pin(sid, data):
     # check if token expired
     print("Checking if token expired...")
     session = await sio.get_session(sid)
@@ -157,10 +157,10 @@ async def toogle_chat_pin(sid, data):
         if type(data_chat['id']) is not int:
             print('Wrong data format')
             return False
-        print('Toogling chat pin...')
-        chat = await ChatRepository.toogle_pin\
+        print('Toggling chat pin...')
+        chat = await ChatRepository.toggle_pin\
             (ChatRepository(next(get_database_connection())), \
-                current_user, data_chat)
+                current_user, data_chat['id'])
         if chat == 'Chat not found':
             print('Chat not found')
             return False
@@ -168,19 +168,15 @@ async def toogle_chat_pin(sid, data):
             print('User not found')
             return False
         print('Chat toogled: ', chat)
-        print('Sending chat to client...')
-        for member in chat['members_array']:
-            member = await UserRepository.get_by_id\
-                (UserRepository(next(get_database_connection())), id=member.id, user=current_user)
-            if(not member):
-                print('User not found')
-                return False
-            if member.online:
-                print('Sending chat to client: ', member.sid)
-                await sio.emit('chat_toogled', {'chat': chat['id']}, room=member.sid)
-            else:
-                print(f'User with sid: {member.id} is offline')
-        print('Done, chat toogled, users notified')
+        # send caht pinned event to current user
+        print('Sending event of toogle pinning to client...')
+        if current_user.online:
+            if chat['pinned']:
+                print('Sending chat pinned event to client: ', current_user.sid)
+                await sio.emit('chat_pinned', {'chat': chat['id']}, room=current_user.sid)
+            if not chat['pinned']:
+                print('Sending chat unpinned event to client: ', current_user.sid)
+                await sio.emit('chat_unpinned', {'chat': chat['id']}, room=current_user.sid)
     else:
         print('Wrong data format')
         return False

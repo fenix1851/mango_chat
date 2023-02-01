@@ -26,8 +26,8 @@ async def login(response: Response,form_data: OAuth2PasswordRequestForm = Depend
     return await user_service.login(form_data=form_data, response=response)
 
 @router.post('/refresh', status_code=status.HTTP_200_OK)
-async def refresh(refresh_token: str,response:Response, user_service=Depends(get_user_service)):
-    return await user_service.refresh(refresh_token=refresh_token, response=response)
+async def refresh(response:Response, user_service=Depends(get_user_service), user=Depends(get_current_user)):
+    return await user_service.refresh(refresh_token=user.refresh_token, response=response)
 
 @router.patch('/{id}', status_code=status.HTTP_202_ACCEPTED)
 async def patch_user(id: int, data: UserUpdateSchema, user_service=Depends(get_user_service), user=Depends(get_current_user)):
