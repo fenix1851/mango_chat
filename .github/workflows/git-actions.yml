@@ -1,16 +1,18 @@
-name: Mango Chat Actions
-run-name: ${{ github.actor }} tests...
-on: [push]
+
+name: Development Compose CI
+
+on:
+  [push]
+
 jobs:
-  init:
-    runs-on: ubuntu-latest
+  run:
+    runs-on: 4g
+
     steps:
-  # need checkout before using compose-action
-  - uses: actions/checkout@v3
-  - uses: isbang/compose-action@v1.4.1
-    with:
-      compose-file: "./docker/docker-compose.yml"
-      compose-project-name: "mango-chat"
-      compose-build: true
-      compose-up: true
-      
+    - uses: actions/checkout@v3
+      with:
+        clean: false
+    - name: Run server
+      run: docker-compose -f docker-compose.dev.yml up --build -d
+permissions: 
+  contents: write
