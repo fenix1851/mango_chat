@@ -17,9 +17,9 @@ pinnded_chat_chats = Table(
 class PinnedChatModel(Base):
     __tablename__ = 'pinned_chat'
     id = Column(Integer, primary_key=True, autoincrement=True)
-    user = Column(Integer, ForeignKey('user.id'))
+    user = Column(Integer, ForeignKey('user_table.id'))
     chats_array = relationship(
-        'ChatModel', secondary=pinnded_chat_chats, back_populates='pinned_chat')
+        'ChatModel', secondary=pinnded_chat_chats, backref='pinned_chat')
 
 
     created_at = Column(String(255), nullable=False, server_default=func.now())

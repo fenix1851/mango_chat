@@ -9,7 +9,7 @@ chat_user = Table(
     'chat_user',
     Base.metadata,
     Column('chat_id', Integer, ForeignKey('chat.id')),
-    Column('user_id', Integer, ForeignKey('user.id'))
+    Column('user_id', Integer, ForeignKey('user_table.id'))
 )
 
 
@@ -19,6 +19,6 @@ class ChatModel(Base):
     name = Column(String(255), nullable=False)
     is_group = Column(Boolean, nullable=False)
     members_array = relationship(
-        'UserModel', secondary=chat_user, back_populates='chat')
+        'UserModel', secondary=chat_user, backref='chat')
     created_at = Column(String(255), nullable=False, server_default=func.now())
 

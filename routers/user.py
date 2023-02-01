@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, APIRouter, status
+from fastapi import FastAPI, Depends, APIRouter, status, Response
 from models.user import UserModel
 from schemas.user import UserBaseSchema, UserUpdateSchema
 from services.user import get_user_service
@@ -22,12 +22,12 @@ async def get_user_by_id(id: int, user_service=Depends(get_user_service), user=D
     return await user_service.get_by_id(id, user)
 
 @router.post('/login', status_code=status.HTTP_200_OK)
-async def login(form_data: OAuth2PasswordRequestForm = Depends(), user_service=Depends(get_user_service)):
-    return await user_service.login(form_data=form_data)
+async def login(response: Response,form_data: OAuth2PasswordRequestForm = Depends(), user_service=Depends(get_user_service)):
+    return await user_service.login(form_data=form_data, response=response)
 
 @router.post('/refresh', status_code=status.HTTP_200_OK)
-async def refresh(refresh_token: str, user_service=Depends(get_user_service)):
-    return await user_service.refresh(refresh_token=refresh_token)
+async def refresh(refresh_token: str,response:Response, user_service=Depends(get_user_service)):
+    return await user_service.refresh(refresh_token=refresh_token, response=response)
 
 @router.patch('/{id}', status_code=status.HTTP_202_ACCEPTED)
 async def patch_user(id: int, data: UserUpdateSchema, user_service=Depends(get_user_service), user=Depends(get_current_user)):

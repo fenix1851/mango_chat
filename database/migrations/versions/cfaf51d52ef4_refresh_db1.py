@@ -1,8 +1,8 @@
 """refresh db1
 
-Revision ID: 3527f96c7326
+Revision ID: cfaf51d52ef4
 Revises: 
-Create Date: 2023-01-31 21:05:10.170970
+Create Date: 2023-02-01 12:30:00.839775
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = '3527f96c7326'
+revision = 'cfaf51d52ef4'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -31,14 +31,16 @@ def upgrade():
     sa.Column('mime', sa.String(length=255), nullable=False),
     sa.PrimaryKeyConstraint('id')
     )
-    op.create_table('user',
+    op.create_table('user_table',
     sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
-    sa.Column('name', sa.String(length=255), nullable=False),
+    sa.Column('name', sa.String(length=255), nullable=True),
     sa.Column('phone', sa.String(length=30), nullable=False),
     sa.Column('photo', sa.String(length=255), nullable=False),
-    sa.Column('description', sa.String(length=255), nullable=False),
+    sa.Column('description', sa.String(length=255), nullable=True),
     sa.Column('hashed_password', sa.String(length=255), nullable=False),
-    sa.Column('refresh_token', sa.String(length=255), nullable=False),
+    sa.Column('refresh_token', sa.String(length=255), nullable=True),
+    sa.Column('online', sa.Boolean(), server_default='0', nullable=False),
+    sa.Column('sid', sa.String(length=255), nullable=True),
     sa.Column('created_at', sa.String(length=255), server_default=sa.text('now()'), nullable=False),
     sa.PrimaryKeyConstraint('id')
     )
@@ -46,7 +48,7 @@ def upgrade():
     sa.Column('chat_id', sa.Integer(), nullable=True),
     sa.Column('user_id', sa.Integer(), nullable=True),
     sa.ForeignKeyConstraint(['chat_id'], ['chat.id'], ),
-    sa.ForeignKeyConstraint(['user_id'], ['user.id'], )
+    sa.ForeignKeyConstraint(['user_id'], ['user_table.id'], )
     )
     op.create_table('message',
     sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
@@ -55,21 +57,21 @@ def upgrade():
     sa.Column('type', sa.String(length=255), nullable=False),
     sa.Column('created_at', sa.String(length=255), server_default=sa.text('now()'), nullable=False),
     sa.ForeignKeyConstraint(['chat_id'], ['chat.id'], ),
-    sa.ForeignKeyConstraint(['user_id'], ['user.id'], ),
+    sa.ForeignKeyConstraint(['user_id'], ['user_table.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_table('pinned_chat',
     sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
     sa.Column('user', sa.Integer(), nullable=True),
     sa.Column('created_at', sa.String(length=255), server_default=sa.text('now()'), nullable=False),
-    sa.ForeignKeyConstraint(['user'], ['user.id'], ),
+    sa.ForeignKeyConstraint(['user'], ['user_table.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_table('message_likes',
     sa.Column('message_id', sa.Integer(), nullable=True),
     sa.Column('user_id', sa.Integer(), nullable=True),
     sa.ForeignKeyConstraint(['message_id'], ['message.id'], ),
-    sa.ForeignKeyConstraint(['user_id'], ['user.id'], )
+    sa.ForeignKeyConstraint(['user_id'], ['user_table.id'], )
     )
     op.create_table('pinned_chat_chats',
     sa.Column('pinned_chat_id', sa.Integer(), nullable=True),
@@ -87,7 +89,7 @@ def downgrade():
     op.drop_table('pinned_chat')
     op.drop_table('message')
     op.drop_table('chat_user')
-    op.drop_table('user')
+    op.drop_table('user_table')
     op.drop_table('message_type')
     op.drop_table('chat')
     # ### end Alembic commands ###

@@ -6,7 +6,7 @@ async def test_socketio_server():
     sio = AsyncClient()
     token = 'test1_token'
     try:
-        await sio.connect('http://localhost:8000/', auth={'token': token})
+        await sio.connect('http://localhost:5000/', auth={'token': token})
     except Exception as e:
         print(f"An error occurred while connecting: {e}")
 
@@ -14,7 +14,6 @@ async def test_socketio_server():
     await sio.emit('join', {'room': 'test_room'})
     await sio.emit('message_to_room', {'room': 'test_room', 'message': 'Hello World!'})
 
-    
         
 
     @sio.on('message_to_room')
