@@ -10,7 +10,8 @@ This is a simple chat API that allows you to send and receive messages from a ch
 4.1 If you using postman, add new SocketIO request and set the handshake path from /socket.io to /ws/socket.io
 5. Create user and get access token from /auth/refresh endpoint. You must paste photo as base64 string, so you can use /user/photo_to_base64 endpoint to convert your photo to base64 string.  
 *be careful with pasing base64 string, it must be with one double quote*  
-*also don't upload big files, you got too big string.*
+*also don't upload big files, you got too big string.*  
+5.1 To access you photo you can use /user/static/{photo}/{size}.jpeg endpoint, where {photo} is your photo name and {size} is one of the following:  **original, 400x400, 100x100, 50x50**  
 6. To access socketIO you should add auth header with access token 
 7. For creating chat send **create_chat** event with json:  
 ```json

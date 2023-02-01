@@ -34,3 +34,4 @@ watchfiles==0.18.1
 websockets==10.4
 yarl==1.8.2
 python-multipart==0.0.5
+pillow==8.4.0

@@ -1,6 +1,8 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from starlette.staticfiles import StaticFiles
+
 from routers.user import router as user_router
 from routers.chat import router as chat_router
 from routers.message import router as message_router
@@ -29,3 +31,4 @@ app.include_router(chat_router)
 app.include_router(message_router)
  
 app.mount('/ws', socket_app)
+app.mount("/static", StaticFiles(directory="static"), name="static")

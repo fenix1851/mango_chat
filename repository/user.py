@@ -11,6 +11,8 @@ import base64
 import binascii
 import uuid
 import os
+from PIL import Image
+from io import BytesIO
 
 pwd_context = pbkdf2_sha256
 pwd_context.using(salt=SALT.encode('utf-8'))
@@ -27,14 +29,18 @@ class UserRepository(BaseRepository):
             raise HTTPException(status_code=403, detail="Photo is not valid")
         else:
             decoded_photo = base64.b64decode(user['photo'])
-            # generate uuid
             photo_uuid = uuid.uuid4()
-            # create directory in static
             os.mkdir(f'static/{photo_uuid}')
-            # create file in directory
             with open(f'static/{photo_uuid}/original.jpg', 'wb') as f:
                 f.write(decoded_photo)
-            # save uuid to user
+            # get path to photo by os.path
+            path = f'static/{photo_uuid}/original.jpg'
+            output_path = os.path.join(os.getcwd(), f'static/{photo_uuid}/')
+            # resize and save photo in 50x50, 100x100, 400x400
+            await self.resize_and_save(path, output_path, (50, 50))
+            await self.resize_and_save(path, output_path, (100, 100))
+            await self.resize_and_save(path, output_path, (400, 400))
+
             user['photo'] = str(photo_uuid)
 
         # hash password
@@ -123,6 +129,15 @@ class UserRepository(BaseRepository):
     async def photo_to_base64(self, image_data: bytes):
         return base64.b64encode(image_data)
     
+    async def resize_and_save(self, path_to_image: str, output_image_path: str, size:list) -> None:
+        original_image = Image.open(path_to_image)
+        width, height = original_image.size
+        print(f"The original image size is {width} wide x {height} tall")
+        resized_image = original_image.resize(size)
+        width, height = resized_image.size
+        print(f"The resized image size is {width} wide x {height} tall")
+        resized_image.save(output_image_path+f'{width}x{height}.webp')
+
     async def create_access_token(self, data: dict, expires_delta: timedelta = None):
         to_encode = data.copy()
         if expires_delta:
