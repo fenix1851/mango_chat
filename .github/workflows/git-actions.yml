@@ -5,14 +5,12 @@ jobs:
   init:
     runs-on: ubuntu-latest
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v2
-    - name: Build Docker Image
-      uses: docker/build-push-action@v2
-      with:
-        context: .
-        push: true
-    - name: Start Docker Compose
-      uses: docker/compose-action@v2
-      with:
-        command: up --build
+  # need checkout before using compose-action
+  - uses: actions/checkout@v3
+  - uses: isbang/compose-action@v1.4.1
+    with:
+      compose-file: "./docker/docker-compose.yml"
+      compose-project-name: "mango-chat"
+      compose-build: true
+      compose-up: true
+      
