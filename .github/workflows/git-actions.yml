@@ -6,8 +6,7 @@ on:
 
 jobs:
   run:
-    runs-on: 4g
-
+    runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
       with:
