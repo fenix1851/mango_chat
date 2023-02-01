@@ -1,5 +1,5 @@
 from models.user import UserModel
-from fastapi import Response, HTTPException, Depends, status, Cookie  
+from fastapi import Response, HTTPException, Depends, status, Cookie, UploadFile  
 from repository.base import BaseRepository
 from schemas.user import UserBaseSchema, UserUpdateSchema
 from passlib.hash import pbkdf2_sha256
@@ -7,6 +7,10 @@ from configs.vars import SALT
 from jose import jwt
 from fastapi.security import OAuth2PasswordRequestForm
 from datetime import datetime, timedelta
+import base64
+import binascii
+import uuid
+import os
 
 pwd_context = pbkdf2_sha256
 pwd_context.using(salt=SALT.encode('utf-8'))
@@ -18,6 +22,22 @@ class UserRepository(BaseRepository):
         if check_user:
             raise HTTPException(status_code=403, detail="User with this phone already exists")
         user = data.__dict__
+        # check if photo is base64
+        if not self.is_valid_base64(user['photo']):
+            raise HTTPException(status_code=403, detail="Photo is not valid")
+        else:
+            decoded_photo = base64.b64decode(user['photo'])
+            # generate uuid
+            photo_uuid = uuid.uuid4()
+            # create directory in static
+            os.mkdir(f'static/{photo_uuid}')
+            # create file in directory
+            with open(f'static/{photo_uuid}/original.jpg', 'wb') as f:
+                f.write(decoded_photo)
+            # save uuid to user
+            user['photo'] = str(photo_uuid)
+
+        # hash password
         user["hashed_password"] = pwd_context.hash(data.password)
         #remove password key from user
         del user['password']
@@ -100,6 +120,9 @@ class UserRepository(BaseRepository):
 
     # helpers
     # -------
+    async def photo_to_base64(self, image_data: bytes):
+        return base64.b64encode(image_data)
+    
     async def create_access_token(self, data: dict, expires_delta: timedelta = None):
         to_encode = data.copy()
         if expires_delta:
@@ -131,5 +154,10 @@ class UserRepository(BaseRepository):
     
     async def get_by_phone(self, phone: str):
         return self.session.query(UserModel).filter(UserModel.phone == phone).first()
-    
-    
+
+    def is_valid_base64(self,string:str) -> bool:
+        try:
+            base64.b64decode(string)
+            return True
+        except (TypeError, binascii.Error):
+            return False

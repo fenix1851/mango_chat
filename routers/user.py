@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, APIRouter, status, Response
+from fastapi import FastAPI, Depends, APIRouter, status, Response, File, UploadFile
 from models.user import UserModel
 from schemas.user import UserBaseSchema, UserUpdateSchema
 from services.user import get_user_service
@@ -32,3 +32,7 @@ async def refresh(response:Response, user_service=Depends(get_user_service), use
 @router.patch('/{id}', status_code=status.HTTP_202_ACCEPTED)
 async def patch_user(id: int, data: UserUpdateSchema, user_service=Depends(get_user_service), user=Depends(get_current_user)):
     return await user_service.patch(id, data, user)
+
+@router.post("/photo_to_base64", status_code=status.HTTP_200_OK)
+async def photo_to_base64(image: UploadFile = File(), user_service=Depends(get_user_service)):
+    return await user_service.photo_to_base64(image.file.read())
