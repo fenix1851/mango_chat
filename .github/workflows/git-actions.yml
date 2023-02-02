@@ -6,11 +6,14 @@ on:
 
 jobs:
   run:
-    runs-on: ubuntu-latest
+    runs-on: 4g
+
     steps:
     - uses: actions/checkout@v3
       with:
         clean: false
+    - name: Copy .env
+      run: cp /home/faglo/env/env ./.env
     - name: Run server
       run: docker-compose -f docker-compose.yml up --build -d
 permissions: 
