@@ -58,3 +58,4 @@ watchfiles==0.18.1
 websockets==10.4
 yarl==1.8.2
 zipp==3.12.0
+loguru==0.5.3
