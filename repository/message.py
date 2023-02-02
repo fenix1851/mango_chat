@@ -5,6 +5,8 @@ from models.chat import ChatModel
 from repository.base import BaseRepository
 from fastapi import Response, HTTPException
 
+from loguru import logger
+
 class MessageRepository(BaseRepository):
     async def get_messages(self, chat_id, user):
         # check if user is member of chat
@@ -17,7 +19,6 @@ class MessageRepository(BaseRepository):
                     chat_id=chat_id).order_by(MessageModel.created_at.desc()).all()
                 results = []
                 for message in messages:
-                    print(message)
                     message_dict = message.__dict__
                     likes = []
                     for like in message.likes_array:
@@ -52,9 +53,11 @@ class MessageRepository(BaseRepository):
                 message = MessageModel(**message_data)
                 self.session.add(message)
                 self.session.commit()
+                logger.info(f'Message created: {message.id}')
                 return {'id': message.id, 'members_array': chat.members_array,\
                         'chat_id': chat.id, 'message_type': message_type.name\
                             , 'content': message.content, 'created_at': message.created_at}
+        logger.info('Chat not found while creating message')
         raise HTTPException(status_code=404, detail="Chat not found")
     
     async def toggle_like(self, user, message_id):
@@ -62,11 +65,15 @@ class MessageRepository(BaseRepository):
         user = self.session.query(UserModel).filter_by(id=user.id).first()
         message = self.session.query(MessageModel).filter_by(id=message_id).first()
         chat = self.session.query(ChatModel).filter_by(id=message.chat_id).first()
+        logger.info(f'Toggling like for message: {message_id}')
         if message is None:
+            logger.info('Message not found while toggling like')
             raise HTTPException(status_code=404, detail="Message not found")
         if user in message.likes_array:
+            logger.info(f'User {user.id} unliked message {message.id}')
             message.likes_array.remove(user)
         else:
+            logger.info(f'User {user.id} unliked message {message.id}')
             message.likes_array.append(user)
         self.session.add(message)
         self.session.commit()

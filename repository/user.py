@@ -13,19 +13,23 @@ import uuid
 import os
 from PIL import Image
 from io import BytesIO
+from loguru import logger
+
 
 pwd_context = pbkdf2_sha256
 pwd_context.using(salt=SALT.encode('utf-8'))
 
 class UserRepository(BaseRepository):
     async def create(self, data: UserBaseSchema):
+        logger.info(f'Creating user with data: {data}')
         check_user = await self.get_by_phone(data.phone)
-        print(check_user)
         if check_user:
+            logger.info(f'User with phone {data.phone} already exists: {check_user}')
             raise HTTPException(status_code=403, detail="User with this phone already exists")
         user = data.__dict__
         # check if photo is base64
         if not self.is_valid_base64(user['photo']):
+            logger.info(f'Photo is not valid base64: {user["photo"]}')
             raise HTTPException(status_code=403, detail="Photo is not valid")
         else:
             decoded_photo = base64.b64decode(user['photo'])
@@ -35,12 +39,13 @@ class UserRepository(BaseRepository):
                 f.write(decoded_photo)
             # get path to photo by os.path
             path = f'static/{photo_uuid}/original.jpg'
+            logger.info(f'Path to photo: {path}')
             output_path = os.path.join(os.getcwd(), f'static/{photo_uuid}/')
             # resize and save photo in 50x50, 100x100, 400x400
             await self.resize_and_save(path, output_path, (50, 50))
             await self.resize_and_save(path, output_path, (100, 100))
             await self.resize_and_save(path, output_path, (400, 400))
-
+            # set photo_uuid to user
             user['photo'] = str(photo_uuid)
 
         # hash password
@@ -50,6 +55,7 @@ class UserRepository(BaseRepository):
         user = UserModel(**user)
         self.session.add(user)
         self.session.commit()
+        logger.info(f'User created: {user}')
         return user
     
     async def get_by_id(self, id: int, user):
@@ -86,6 +92,7 @@ class UserRepository(BaseRepository):
         user.refresh_token = refresh_token
         self.session.commit()
         response.set_cookie(key="refresh_token", value=refresh_token)
+        logger.info(f'User logged in: {user}')
         return {"access_token": access_token, "token_type": "bearer"}
 
     async def refresh(self, response: Response, refresh_token: str = Cookie(None)):
@@ -100,6 +107,7 @@ class UserRepository(BaseRepository):
         access_token = await self.create_access_token(
             data={"sub": user.phone})
         response.set_cookie(key="refresh_token", value=refresh_token)
+        logger.info(f'User refreshed: {user}')
         return {"access_token": access_token, "token_type": "bearer"}
 
 
@@ -130,14 +138,20 @@ class UserRepository(BaseRepository):
                 else:
                     setattr(user_in_db, key, value)
             self.session.commit()
+            logger.info(f'User updated: {user_in_db}')
             return user_in_db
         else:
+            logger.info(f'User tried to change other users data: {user}')
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You can't change other users data")
 
     # update for socket
     # -----------------
     async def update_status(self, user, online: bool, sid: str):
         user = self.session.query(UserModel).filter(UserModel.id == user.id).first()
+        if online:
+            logger.info(f'User {user} is now online, sid: {sid}')
+        else:
+            logger.info(f'User {user} is now offline')
         user.online = online
         user.sid = sid
         self.session.commit()
@@ -146,6 +160,7 @@ class UserRepository(BaseRepository):
     # helpers
     # -------
     async def photo_to_base64(self, image_data: bytes):
+        logger.info(f'Someone tried to convert photo to base64')
         return base64.b64encode(image_data)
     
     async def resize_and_save(self, path_to_image: str, output_image_path: str, size:list) -> None:

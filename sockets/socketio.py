@@ -9,6 +9,8 @@ from repository.message import MessageRepository
 
 from database.connections import get_database_connection
 
+from loguru import logger
+
 sio = socketio.AsyncServer(
     async_mode='asgi',
     cors_allowed_origins=["*"],
@@ -34,8 +36,7 @@ async def authenticate(sid, environ):
     if current_user is None:
         return False
 
-    print(f"Access token: {access_token}")
-    print(f"Current user: {current_user.__dict__}")
+    logger.info(f'User authenticated through socket: {current_user.id}')
     return {'sid': sid, 'user': current_user, 'access_token': access_token}
 
 # socketio events
@@ -53,28 +54,23 @@ async def connection(sid, environ, *args, **kwargs):
         raise ConnectionRefusedError('authentication failed')
     else:
         current_user = auth.get('user')
-        print('Client connected', sid)
-        print('Joining to rooms...')
+        logger.info(f'Joining room: {current_user.id}')
         chats = await ChatRepository.get_chats\
             (ChatRepository(next(get_database_connection())), current_user)
         for chat in chats:
-            print('Joining to room: room_', chat.id)
+            logger.info(f'Joining room: {chat.id}')
             sio.enter_room(sid, "room_"+str(chat.id))
-        print('Done!')
-        print('Changing status to online...')
+        logger.info(f'User {current_user.id} joined all rooms')
         await UserRepository.update_status\
             (UserRepository(next(get_database_connection())), \
             user=current_user, online=True, sid=sid)
-        print('Done!')
-        print('Saving session id...')
+        logger.info(f'User {current_user.id} status updated to online, saving session...')
         await sio.save_session(sid, {'user': current_user, 'access_token': auth.get('access_token')})
-        print('Done!')
+        logger.info(f'User {current_user.id} session saved')
 
 
 @sio.on('disconnect')
 async def test_disconnect(sid):
-    print('Client disconnected', sid)
-    print('Changing status to offline...')
     session = await sio.get_session(sid)
     user = session.get('user')
     await UserRepository.update_status\
@@ -87,67 +83,63 @@ async def test_disconnect(sid):
 @sio.on('create_chat')
 async def create_chat(sid, data):
     # check if token expired
-    print("Checking if token expired...")
+    logger.info(f"{sid}trying to create chat")
     session = await sio.get_session(sid)
     access_token = session.get('access_token')
     current_user = await \
         get_current_user.get_current_user(access_token)
     if not current_user:
+        logger.info(f"{sid}token expired")
         raise ConnectionRefusedError('authentication failed, token expired')    
-    print('Validating data for creating chat...')
     # i don't know how to validate data from socketio right, \
     # so i'm just checking if the data is in the right format
     data_chat = data.get('chat')
-    print('Chat data : ', data_chat)
 
     if data_chat:
         if type(data_chat['is_group']) is not bool or \
                 type(data_chat['name']) is not str or \
                 type(data_chat['members_array']) is not list:
-            print('Wrong data format')
+            logger.info(f"{current_user.id}wrong data format for chat")
             return False
-        print('Creating chat...')
         chat = await ChatRepository.create\
             (ChatRepository(next(get_database_connection())), \
                 current_user, data_chat)
         if chat == 'Chat already exists':
-            print('Chat already exists')
+            logger.info(f"{current_user.id}chat already exists")
             return False
         if chat == 'User not found':
-            print('User not found')
+            logger.info(f"{current_user.id}user not found")
             return False
-        print('Chat created: ', chat)
-        print('Joining to room: room_', chat['id'])
+        logger.info(f"{current_user.id}chat created")
         sio.enter_room(sid, "room_"+str(chat['id']))
-        print('Done!')
-        print('Sending chat to client...')
+        logger.info(f"{current_user.id}joining to room: room_{chat['id']} done")
         for member in chat['members_array']:
             member = await UserRepository.get_by_id\
                 (UserRepository(next(get_database_connection())), id=member.id, user=current_user)
             if(not member):
-                print('User not found')
+                logger.info(f"{current_user.id}user not found")
                 return False
             if member.online:
-                print('Sending chat to client: ', member.sid)
+                logger.info(f"{current_user.id}user online, notifying")
                 await sio.emit('chat_created', {'chat': chat['id']}, room=member.sid)
+                logger.info(f"{current_user.id}notified")
             else:
-                print(f'User with sid: {member.id} is offline')
-        print('Done, chat created, users notified')
+                logger.info(f"{current_user.id}user offline")
+        logger.info(f"{current_user.id}chat created, users notified")
     else:
         print('Wrong data format')
+        logger.info(f"{current_user.id}wrong data format")
         return False
 
 @sio.on('toggle_chat_pin')
 async def toggle_chat_pin(sid, data):
     # check if token expired
-    print("Checking if token expired...")
     session = await sio.get_session(sid)
     access_token = session.get('access_token')
     current_user = await \
         get_current_user.get_current_user(access_token)
     if not current_user:
         raise ConnectionRefusedError('authentication failed, token expired')    
-    print('Validating data for toogle chat pin...')
     # i don't know how to validate data from socketio right, \
     # so i'm just checking if the data is in the right format
     data_chat = data.get('chat')
@@ -155,7 +147,7 @@ async def toggle_chat_pin(sid, data):
 
     if data_chat:
         if type(data_chat['id']) is not int:
-            print('Wrong data format')
+            logger.info(f"{current_user.id}wrong data format for pinning chat")
             return False
         print('Toggling chat pin...')
         chat = await ChatRepository.toggle_pin\
@@ -167,15 +159,11 @@ async def toggle_chat_pin(sid, data):
         if chat == 'User not found':
             print('User not found')
             return False
-        print('Chat toogled: ', chat)
         # send caht pinned event to current user
-        print('Sending event of toogle pinning to client...')
         if current_user.online:
             if chat['pinned']:
-                print('Sending chat pinned event to client: ', current_user.sid)
                 await sio.emit('chat_pinned', {'chat': chat['id']}, room=current_user.sid)
             if not chat['pinned']:
-                print('Sending chat unpinned event to client: ', current_user.sid)
                 await sio.emit('chat_unpinned', {'chat': chat['id']}, room=current_user.sid)
     else:
         print('Wrong data format')
@@ -186,37 +174,38 @@ async def toggle_chat_pin(sid, data):
 @sio.on('send_message')
 async def send_message(sid,data):
     # check if token expired
-    print("Checking if token expired...")
     session = await sio.get_session(sid)
     access_token = session.get('access_token')
     current_user = await \
         get_current_user.get_current_user(access_token)
     if not current_user:
         raise ConnectionRefusedError('authentication failed, token expired')    
-    print('Validating data for sending message...')
     # i don't know how to validate data from socketio right, \
     # so i'm just checking if the data is in the right format
     data_message = data.get('message')
-    print('Message data : ', data_message)
+    logger.info(f"{current_user.id}trying to send message")
 
     if data_message:
         if type(data_message['chat_id']) is not int or \
                 type(data_message['content']) is not str or\
                     type(data_message['message_type']) is not str:
             print('Wrong data format')
+            logger.info(f"{current_user.id}wrong data format for sending message")
             return False
-        print('Sending message...')
         try:
+            logger.info(f"{current_user.id}sending message...")
             message = await MessageRepository.create\
                 (MessageRepository(next(get_database_connection())), \
                     user=current_user, message_data=data_message)
         except Exception as e:
-            print('Error while sending message: ', e)
+            logger.info(f"{current_user.id}error while sending message")
             return False
         message = message
     
         print('Message sent: ', message)
+        logger.info(f"{current_user.id}message sent")
         print('Sending message to client...')
+        logger.info(f"{current_user.id}sending message to client")
         for member in message['members_array']:
             if member.id == current_user.id:
                 continue
@@ -224,14 +213,17 @@ async def send_message(sid,data):
                 (UserRepository(next(get_database_connection())), id=member.id, user=current_user)
             if member.online:
                 print('Sending message to client: ', member.sid)
+                logger.info(f"{current_user.id}sending message to client: {member.sid}")
                 await sio.emit('new_message', {'content':message['content'],\
                                                'message_type':message['message_type'],\
                                                   "chat":message['chat_id']},\
                                                       room="room_"+str(message['chat_id']),
                                                         skip_sid=sid)
             else:
+                logger.info(f"{current_user.id}user offline")
                 print(f'User with sid: {member.id} is offline')
     else:
+        logger.info(f"{current_user.id}wrong data format")
         print('Wrong data format')
         return False    
         
@@ -248,11 +240,12 @@ async def like_message(sid,data):
     # i don't know how to validate data from socketio right, \
     # so i'm just checking if the data is in the right format
     data_message = data.get('message')
-    print('Message data : ', data_message)
+    logger.info(f"{current_user.id}trying to like message")
     
     if data_message:
         if type(data_message['id']) is not int:
             print('Wrong data format')
+            logger.info(f"{current_user.id}wrong data format for liking message")
             return False
         print('Toggle like to message...')
         try:
@@ -261,10 +254,12 @@ async def like_message(sid,data):
                     user=current_user, message_id=data_message['id'])
         except Exception as e:
             print('Error while toogle like on message: ', e)
+            logger.info(f"{current_user.id}error while liking message")
             return False
         message = message
         print('Message liked: ', message)
         print('Sending message to client...')
+        logger.info(f"{current_user.id}sending message to client")
         for member in message['members_array']:
             if member.id == current_user.id:
                 continue
@@ -272,9 +267,11 @@ async def like_message(sid,data):
                 (UserRepository(next(get_database_connection())), \
                  id=member.id, user=current_user)
             if member.online:
+                logger.info(f"{current_user.id}sending message to client: {member.sid}")
                 print('Sending message to client: ', member.sid)
                 await sio.emit('message_liked', {'message_id':message['id']},\
                                                       room="room_"+str(message['chat_id']),
                                                         skip_sid=sid)
             else:
+                logger.info(f"{current_user.id}user offline")
                 print(f'User with sid: {member.id} is offline')
