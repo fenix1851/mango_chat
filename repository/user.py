@@ -180,7 +180,7 @@ class UserRepository(BaseRepository):
     async def get_hashed_password(self, password: str) -> str:
         return pwd_context.hash(password)
     
-    async def verify_password(self, password: str, hashed_pass: str) -> bool:
+    def verify_password(self, password: str, hashed_pass: str) -> bool:
         return pwd_context.verify(password, hashed_pass)
     
     async def get_by_name(self, name: str):

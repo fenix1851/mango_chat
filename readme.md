@@ -58,3 +58,6 @@ This is a simple chat API that allows you to send and receive messages from a ch
 
 ## Conclusion
 I hope you will enjoy using this API. If you have any questions, feel free to contact me.
+
+Telegram: [@foxyess2020](https://t.me/foxyess2020)
+Gmail: [dmpyatyi@gmail.com](mailto:dmpyatyi@gmail.com)

@@ -14,5 +14,8 @@ jobs:
         clean: false
     - name: Run server
       run: docker-compose up --build -d
+    - name: Run tests
+      run: docker exec -it mango_chat_web_1 python -m pytest tests/tests.py
+
 permissions: 
   contents: write
