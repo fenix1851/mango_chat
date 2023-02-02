@@ -103,7 +103,6 @@ def test_get_messages(api_client):
 
 # helpers
 # --------------------------------------------
-@pytest.mark.skip(reason="helpers")
 def get_access_token(api_client):
     login_data = {"username": "123456789", "password": "password123"}
     login_response = api_client.post("/user/login", data=login_data)
