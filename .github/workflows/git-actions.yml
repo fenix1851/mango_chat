@@ -13,7 +13,7 @@ jobs:
       with:
         clean: false
     - name: Run server
-      run: docker-compose up --build -d
+      run: docker-compose up --build 
     - name: Run tests
       run: docker exec -it --tty mango_chat_web_1 python -m pytest tests/tests.py
 
