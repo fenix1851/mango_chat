@@ -15,6 +15,6 @@ jobs:
     - name: Copy .env
       run: cp /home/faglo/env/env ./.env
     - name: Run server
-      run: docker-compose -f docker-compose.yml up --build -d
+      run: docker-compose up --build -d
 permissions: 
   contents: write
