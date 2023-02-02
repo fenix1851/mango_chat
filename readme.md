@@ -55,3 +55,6 @@ This is a simple chat API that allows you to send and receive messages from a ch
 ```
 10.1 To receive pinned chat subscribe to **chat_pinned** event   
 10.2 To receive unpinned chat subscribe to **chat_unpinned** event   
+
+## Conclusion
+I hope you will enjoy using this API. If you have any questions, feel free to contact me.
