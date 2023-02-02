@@ -6,7 +6,7 @@ on:
 
 jobs:
   run:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
 
     steps:
     - uses: actions/checkout@v3
@@ -15,7 +15,7 @@ jobs:
     - name: Run server
       run: docker-compose up --build -d
     - name: Run tests
-      run: docker exec mango_chat_web_1 /bin/bash -c "python -m pytest tests/tests.py"
+      run: docker exec mangochat_web_1 /bin/bash -c "python -m pytest tests/tests.py"
   deploy:
     runs-on: self-hosted
     needs: run
