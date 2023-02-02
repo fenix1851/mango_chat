@@ -16,6 +16,15 @@ jobs:
       run: docker-compose up --build -d
     - name: Run tests
       run: docker exec mango_chat_web_1 /bin/bash -c "python -m pytest tests/tests.py"
+  deploy:
+    runs-on: self-hosted
+    needs: run
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        clean: false
+    - name: Deploy
+      run: docker-compose up --build -d
 
 permissions: 
   contents: write
