@@ -79,6 +79,10 @@ Server is separated into 10 parts:
 - **Tests** - contains all tests for API.
 - **Database** - contains alembic configuration and migrations.
 
+## How does logging work
+This API uses loguru for logging. It is a library which aims to bring enjoyable logging in Python. It's simple, efficient, extensible, and compatible with the standard library.
+Logs are stored in assets/logs folder.
+
 ## Conclusion
 I hope you will enjoy using this API. If you have any questions, feel free to contact me.
 
