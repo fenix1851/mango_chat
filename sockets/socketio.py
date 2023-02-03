@@ -9,6 +9,10 @@ from repository.message import MessageRepository
 
 from database.connections import get_database_connection
 
+from exceptions.not_found import UserNotFoundException, ChatNotFoundException
+from exceptions.jwt import InvalidTokenException, TokenExpiredException
+from exceptions.validation import ChatAlreadyExistsException
+
 from loguru import logger
 
 sio = socketio.AsyncServer(
@@ -30,7 +34,7 @@ async def authenticate(sid, environ):
     try:
         current_user = await \
             get_current_user.get_current_user(access_token)
-    except HTTPException as e:
+    except (InvalidTokenException, TokenExpiredException, UserNotFoundException):
         return False
 
     if current_user is None:
@@ -101,15 +105,14 @@ async def create_chat(sid, data):
                 type(data_chat['members_array']) is not list:
             logger.info(f"{current_user.id}wrong data format for chat")
             return False
-        chat = await ChatRepository.create\
-            (ChatRepository(next(get_database_connection())), \
-                current_user, data_chat)
-        if chat == 'Chat already exists':
-            logger.info(f"{current_user.id}chat already exists")
+        try:
+            chat = await ChatRepository.create\
+                (ChatRepository(next(get_database_connection())), \
+                    current_user, data_chat)
+        except (UserNotFoundException, ChatNotFoundException):
+            logger.info(f"{current_user.id}user or chat not found")
             return False
-        if chat == 'User not found':
-            logger.info(f"{current_user.id}user not found")
-            return False
+        
         logger.info(f"{current_user.id}chat created")
         sio.enter_room(sid, "room_"+str(chat['id']))
         logger.info(f"{current_user.id}joining to room: room_{chat['id']} done")
@@ -150,15 +153,14 @@ async def toggle_chat_pin(sid, data):
             logger.info(f"{current_user.id}wrong data format for pinning chat")
             return False
         print('Toggling chat pin...')
-        chat = await ChatRepository.toggle_pin\
-            (ChatRepository(next(get_database_connection())), \
-                current_user, data_chat['id'])
-        if chat == 'Chat not found':
-            print('Chat not found')
+        try:
+            chat = await ChatRepository.toggle_pin\
+                (ChatRepository(next(get_database_connection())), \
+                    current_user, data_chat['id'])
+        except (UserNotFoundException, ChatNotFoundException):
+            print('User or chat not found')
             return False
-        if chat == 'User not found':
-            print('User not found')
-            return False
+        
         # send caht pinned event to current user
         if current_user.online:
             if chat['pinned']:

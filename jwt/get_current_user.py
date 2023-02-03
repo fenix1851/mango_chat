@@ -5,6 +5,8 @@ from datetime import datetime
 from configs.vars import SALT
 from database.connections import get_database_connection
 from repository.user import UserRepository
+from exceptions.not_found import UserNotFoundException
+from exceptions.jwt import InvalidTokenException, TokenExpiredException
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="user/login", scheme_name="JWT")
 
@@ -13,8 +15,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
     try:
         payload = jwt.decode(token, SALT, algorithms=["HS256"])
         if payload.get("exp") < datetime.timestamp(datetime.utcnow()):
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED, detail="Token expired")
+            raise TokenExpiredException()
     except (jwt.JWTError):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
@@ -22,6 +23,5 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
     user = await UserRepository.get_by_phone(UserRepository(
         next(get_database_connection())), phone=payload.get("sub"))
     if not user:
-        raise HTTPException(status_code=status.HTTP_410_GONE,
-                            detail="User not found")
+        raise UserNotFoundException()
     return user

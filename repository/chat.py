@@ -1,10 +1,14 @@
 from models.chat import ChatModel
 from models.user import UserModel
 from models.pinned_chat import PinnedChatModel
-from fastapi import Response, HTTPException, Depends, status, Cookie
+from fastapi import Response, Depends, status, Cookie
+
 from repository.base import BaseRepository
 from schemas.chat import ChatBaseSchema, ChatUpdateSchema
 from loguru import logger
+
+from exceptions.not_found import UserNotFoundException, ChatNotFoundException
+from exceptions.validation import ChatAlreadyExistsException
 
 class ChatRepository(BaseRepository):
     async def get_chats(self, user):
@@ -26,7 +30,7 @@ class ChatRepository(BaseRepository):
         logger.info(f'Chat for user: {user} is: {chat}')
         if chat not in user.chat:
             logger.info(f'Chat {chat} not in user {user} chats')
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Chat not found")
+            raise ChatNotFoundException(f"Chat with id {id} was not found")
         return chat
     
     async def create(self, user, data:dict):
@@ -35,7 +39,7 @@ class ChatRepository(BaseRepository):
         chat = self.session.query(ChatModel).filter_by(name=data['name']).first()
         if chat:
             logger.info(f'Chat with name {data["name"]} already exists: {chat}')
-            return 'Chat already exists'
+            raise ChatAlreadyExistsException(f"Chat already exists")
         members = data["members_array"]
         members.append(user.id)
         members = list(set(members))
@@ -43,7 +47,7 @@ class ChatRepository(BaseRepository):
         for index,member in enumerate(members):
             members[index] = self.session.query(UserModel).filter_by(id=member).first()
             if not members[index]:
-                return 'User not found'
+                raise UserNotFoundException(f"User with id {member} was not found")
         data['members_array'] = members
         chat = ChatModel(**data)
         self.session.add(chat)
@@ -57,7 +61,7 @@ class ChatRepository(BaseRepository):
         logger.info(f'Pinning chat {chat} for user {user}')
         if chat not in user.chat:
             logger.info(f'Chat {chat} not in user {user} chats')
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Chat not found")
+            raise ChatNotFoundException(f"Chat with id {chat.id} was not found")
         pinned_chat = self.session.query(PinnedChatModel).filter_by(user=user.id).first()
         logger.info(f'Pinned chat: {pinned_chat}')
         if pinned_chat:

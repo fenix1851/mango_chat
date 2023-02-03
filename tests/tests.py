@@ -23,13 +23,11 @@ def test_create_user(api_client):
             "password": "password123"}
     data = json.dumps(data)
     response = api_client.post("/user/create", content=data)
-    print(response.json())
     # code may be 403 or 201
     if response.status_code == 201:
         assert response.status_code == 201
     else:
-        assert response.status_code == 403
-        assert response.json()["detail"] == "User with this phone already exists"
+        assert response.status_code == 409
 
 
 def test_get_user_me(api_client):

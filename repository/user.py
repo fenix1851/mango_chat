@@ -1,5 +1,5 @@
 from models.user import UserModel
-from fastapi import Response, HTTPException, Depends, status, Cookie, UploadFile  
+from fastapi import Response, Depends, status, Cookie, UploadFile  
 from repository.base import BaseRepository
 from schemas.user import UserBaseSchema, UserUpdateSchema
 from passlib.hash import pbkdf2_sha256
@@ -14,6 +14,9 @@ import os
 from PIL import Image
 from io import BytesIO
 from loguru import logger
+from exceptions.not_found import UserNotFoundException, RefreshTokenNotFoundException
+from exceptions.validation import UserWithPhoneAlreadyExistsException,\
+    NotValidPhotoException, IncorrectPasswordException, AccessDeniedException
 
 
 pwd_context = pbkdf2_sha256
@@ -25,12 +28,14 @@ class UserRepository(BaseRepository):
         check_user = await self.get_by_phone(data.phone)
         if check_user:
             logger.info(f'User with phone {data.phone} already exists: {check_user}')
-            raise HTTPException(status_code=403, detail="User with this phone already exists")
+            raise UserWithPhoneAlreadyExistsException\
+                (f"User with phone {data.phone} already exists")
         user = data.__dict__
         # check if photo is base64
         if not self.is_valid_base64(user['photo']):
             logger.info(f'Photo is not valid base64: {user["photo"]}')
-            raise HTTPException(status_code=403, detail="Photo is not valid")
+            raise NotValidPhotoException\
+                (f"Photo is not valid base64")
         else:
             decoded_photo = base64.b64decode(user['photo'])
             photo_uuid = uuid.uuid4()
@@ -61,7 +66,8 @@ class UserRepository(BaseRepository):
     async def get_by_id(self, id: int, user):
         user = self.session.query(UserModel).filter(UserModel.id == id).first()
         if not user:
-            raise HTTPException(status_code=404, detail="User not found")
+            raise UserNotFoundException\
+                (f"User not found")
         if user.id == user.id:
             return user
         else:
@@ -79,11 +85,11 @@ class UserRepository(BaseRepository):
     async def login(self, response: Response, form_data: OAuth2PasswordRequestForm = Depends()):
         user = await self.get_by_phone(form_data.username)
         if not user:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+            raise UserNotFoundException\
+                (f"User not found")
         if not self.verify_password(form_data.password, user.hashed_password):
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED, detail="Incorrect password")
+            raise IncorrectPasswordException\
+                (f"Incorrect password")
         # create access and refresh tokens
         access_token = await self.create_access_token(
             data={"sub": user.phone})
@@ -97,13 +103,13 @@ class UserRepository(BaseRepository):
 
     async def refresh(self, response: Response, refresh_token: str = Cookie(None)):
         if not refresh_token:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED, detail="Refresh token not found")
+            raise RefreshTokenNotFoundException\
+                (f"Refresh token not found")
         user = self.session.query(UserModel).filter(
             UserModel.refresh_token == refresh_token).first()
         if not user:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED, detail="Refresh token not found")
+            raise RefreshTokenNotFoundException\
+                (f"Refresh token not found")
         access_token = await self.create_access_token(
             data={"sub": user.phone})
         response.set_cookie(key="refresh_token", value=refresh_token)
@@ -119,7 +125,8 @@ class UserRepository(BaseRepository):
             for key, value in data.items():
                 if key == 'photo':
                     if not self.is_valid_base64(value):
-                        raise HTTPException(status_code=403, detail="Photo is not valid")
+                        raise NotValidPhotoException\
+                            (f"Photo is not valid base64")
                     else:
                         decoded_photo = base64.b64decode(value)
                         photo_uuid = uuid.uuid4()
@@ -142,7 +149,8 @@ class UserRepository(BaseRepository):
             return user_in_db
         else:
             logger.info(f'User tried to change other users data: {user}')
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You can't change other users data")
+            raise AccessDeniedException\
+                (f"Access denied")
 
     # update for socket
     # -----------------
