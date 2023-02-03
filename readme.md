@@ -56,6 +56,29 @@ This is a simple chat API that allows you to send and receive messages from a ch
 10.1 To receive pinned chat subscribe to **chat_pinned** event   
 10.2 To receive unpinned chat subscribe to **chat_unpinned** event   
 
+## How to run tests
+1. Clone the repository
+2. Launch docker-compose up --build -d
+3. Launch docker exec mango_chat_web_1 /bin/bash -c "python -m pytest tests/tests.py"
+
+## Couple words about architecture and structure
+This API is built using FastAPI, PostgreSQL and SocketIO.
+- FastAPI is a modern, fast (high-performance), web framework for building APIs with Python 3.6+ based on standard Python type hints.
+- PostgreSQL is a powerful, open source object-relational database system.
+- SocketIO is a library that enables real-time, bidirectional and event-based communication between the browser and the server.
+
+Server is separated into 10 parts:
+- **Routers** - contains all routers and endpoints, handling requests and responses, http errors, etc.
+- **Services** - contains logic for working with database.
+- **Schemas** - contains all schemas for validation.
+- **Models** - contains all models for database.
+- **Exceptions** - contains all custom exceptions.
+- **Repositories** - contains all repositories for working with database.
+- **Jwt** - contains all logic for working with JWT.
+- **Sockets** - contains all logic for working with socketIO.
+- **Tests** - contains all tests for API.
+- **Database** - contains alembic configuration and migrations.
+
 ## Conclusion
 I hope you will enjoy using this API. If you have any questions, feel free to contact me.
 
