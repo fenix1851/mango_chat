@@ -98,7 +98,7 @@ async def create_chat(sid, data):
     # i don't know how to validate data from socketio right, \
     # so i'm just checking if the data is in the right format
     data_chat = data.get('chat')
-
+    print('Chat data : ', data_chat)
     if data_chat:
         if type(data_chat['is_group']) is not bool or \
                 type(data_chat['name']) is not str or \
@@ -122,12 +122,9 @@ async def create_chat(sid, data):
             if(not member):
                 logger.info(f"{current_user.id}user not found")
                 return False
-            if member.online:
-                logger.info(f"{current_user.id}user online, notifying")
-                await sio.emit('chat_created', {'chat': chat['id']}, room=member.sid)
-                logger.info(f"{current_user.id}notified")
-            else:
-                logger.info(f"{current_user.id}user offline")
+            await sio.emit('chat_created', {'chat': chat['id']}, room=member.sid)
+            logger.info(f"{current_user.id}notified")
+         
         logger.info(f"{current_user.id}chat created, users notified")
     else:
         print('Wrong data format')
@@ -162,11 +159,10 @@ async def toggle_chat_pin(sid, data):
             return False
         
         # send caht pinned event to current user
-        if current_user.online:
-            if chat['pinned']:
-                await sio.emit('chat_pinned', {'chat': chat['id']}, room=current_user.sid)
-            if not chat['pinned']:
-                await sio.emit('chat_unpinned', {'chat': chat['id']}, room=current_user.sid)
+        if chat['pinned']:
+            await sio.emit('chat_pinned', {'chat': chat['id']}, room=current_user.sid)
+        if not chat['pinned']:
+            await sio.emit('chat_unpinned', {'chat': chat['id']}, room=current_user.sid)
     else:
         print('Wrong data format')
         return False
@@ -213,17 +209,14 @@ async def send_message(sid,data):
                 continue
             member = await UserRepository.get_by_id\
                 (UserRepository(next(get_database_connection())), id=member.id, user=current_user)
-            if member.online:
-                print('Sending message to client: ', member.sid)
-                logger.info(f"{current_user.id}sending message to client: {member.sid}")
-                await sio.emit('new_message', {'content':message['content'],\
-                                               'message_type':message['message_type'],\
-                                                  "chat":message['chat_id']},\
-                                                      room="room_"+str(message['chat_id']),
-                                                        skip_sid=sid)
-            else:
-                logger.info(f"{current_user.id}user offline")
-                print(f'User with sid: {member.id} is offline')
+            print('Sending message to client: ', member.sid)
+            logger.info(f"{current_user.id}sending message to client: {member.sid}")
+            await sio.emit('new_message', {'content':message['content'],\
+                                            'message_type':message['message_type'],\
+                                                "chat":message['chat_id']},\
+                                                    room="room_"+str(message['chat_id']),
+                                                    skip_sid=sid)
+        
     else:
         logger.info(f"{current_user.id}wrong data format")
         print('Wrong data format')
@@ -268,12 +261,8 @@ async def like_message(sid,data):
             member = await UserRepository.get_by_id\
                 (UserRepository(next(get_database_connection())), \
                  id=member.id, user=current_user)
-            if member.online:
-                logger.info(f"{current_user.id}sending message to client: {member.sid}")
-                print('Sending message to client: ', member.sid)
-                await sio.emit('message_liked', {'message_id':message['id']},\
+            logger.info(f"{current_user.id}sending message to client: {member.sid}")
+            print('Sending message to client: ', member.sid)
+            await sio.emit('message_liked', {'message_id':message['id']},\
                                                       room="room_"+str(message['chat_id']),
                                                         skip_sid=sid)
-            else:
-                logger.info(f"{current_user.id}user offline")
-                print(f'User with sid: {member.id} is offline')
